@@ -3,7 +3,8 @@ const {
   register, 
   login, 
   forgotPassword, 
-  resetPassword 
+  resetPassword,
+  verifyEmail
 } = require('../controllers/authController');
 
 const router = express.Router();
@@ -36,5 +37,7 @@ router.post('/forgot-password', forgotPassword);
  * @body {String} password - Mật khẩu mới (8-32 ký tự, đủ thành phần bảo mật)
  */
 router.put('/reset-password/:token', resetPassword);
+
+router.get('/verify-email/:token', verifyEmail);
 
 module.exports = router;

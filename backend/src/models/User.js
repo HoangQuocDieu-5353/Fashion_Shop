@@ -40,6 +40,12 @@ const userSchema = new mongoose.Schema(
       },
       default: 'customer',
     },
+    isVerified: {
+      type: Boolean,
+      default: false, // Mặc định mới đăng ký là chưa xác thực
+    },
+    emailVerificationToken: String,
+    emailVerificationExpire: Date,
     avatar: {
       type: String,
       default: null,
