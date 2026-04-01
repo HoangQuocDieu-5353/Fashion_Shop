@@ -1,5 +1,5 @@
 const Category = require('../models/Category');
-
+const Product = require('../models/Product');
 /**
  * Lấy danh sách tất cả danh mục
  * @route GET /api/categories
@@ -249,29 +249,26 @@ const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Tìm và xóa danh mục
-    const deletedCategory = await Category.findByIdAndDelete(id);
-
-    if (!deletedCategory) {
-      return res.status(404).json({
+    // 🚀 CHỐT CHẶN: Kiểm tra xem có sản phẩm nào đang dùng danh mục này không
+    const hasProducts = await Product.findOne({ category: id, isDeleted: false });
+    if (hasProducts) {
+      return res.status(400).json({
         success: false,
-        message: 'Danh mục không tồn tại',
+        message: 'Không thể xóa! Đang có sản phẩm thuộc danh mục này. Vui lòng chuyển sản phẩm sang danh mục khác trước khi xóa.',
         data: null,
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Xóa danh mục thành công',
-      data: deletedCategory,
-    });
+    // Nếu an toàn (không có sản phẩm nào) thì mới cho xóa
+    const deletedCategory = await Category.findByIdAndDelete(id);
+
+    if (!deletedCategory) {
+      return res.status(404).json({ success: false, message: 'Danh mục không tồn tại' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Xóa danh mục thành công' });
   } catch (error) {
-    console.error('Lỗi khi xóa danh mục:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Lỗi máy chủ khi xóa danh mục',
-      data: null,
-    });
+    return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi xóa danh mục' });
   }
 };
 
