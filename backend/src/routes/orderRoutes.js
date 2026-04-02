@@ -12,7 +12,7 @@
   } = require('../controllers/orderController');
 
   /**
-   * POST /api/orders/create
+   
    * Tạo đơn hàng từ giỏ hàng
    * @access Private
    */

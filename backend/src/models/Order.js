@@ -45,6 +45,9 @@ const orderSchema = new mongoose.Schema(
           required: true,
           min: 0,
         },
+        subTotal: { type: Number },
+        discountAmount: { type: Number, default: 0 },
+        coupon: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' },
       },
     ],
 
@@ -77,10 +80,19 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Trạng thái đơn hàng
     status: {
       type: String,
-      enum: ['Pending', 'Confirmed', 'Shipping', 'Delivered', 'Cancelled'],
+      enum: [
+        'Pending', 
+        'Confirmed', 
+        'Shipping', 
+        'Delivered', 
+        'Cancelled',
+        // --- 3 Trạng thái mới cho nghiệp vụ Đổi Trả ---
+        'Return Requested',  // Khách vừa gửi yêu cầu
+        'Refund Processing', // Admin đã duyệt, đang chờ xử lý tiền/hàng
+        'Returned'           // Hoàn tất quy trình đổi trả
+      ],
       default: 'Pending',
     },
 
