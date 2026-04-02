@@ -21,6 +21,7 @@ export const CartProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Lỗi đồng bộ giỏ hàng");
+      setCartCount(0);
     }
   };
 

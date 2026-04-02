@@ -4,160 +4,106 @@ import toast from 'react-hot-toast';
 import { AuthContext } from './AuthContext';
 
 /**
- * SocketContext - Context để quản lý kết nối Socket.io
- * Lắng nghe các sự kiện real-time từ server:
- * - newOrderAdmin: Thông báo khi có đơn hàng mới (cho Admin)
- * - orderStatusUpdate: Thông báo cập nhật trạng thái đơn (cho Customer)
+ * SocketContext - Trạm thu phát tín hiệu Real-time
  */
 export const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [onlineAdmins, setOnlineAdmins] = useState(0);
   const { isAuthenticated, user } = useContext(AuthContext);
 
-  /**
-   * Khởi tạo kết nối Socket.io
-   * Gửi token trong phần auth của socket handshake
-   */
   useEffect(() => {
+    // 1. Nếu chưa đăng nhập thì ngắt kết nối ngay
     if (!isAuthenticated || !user) {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+        setIsConnected(false);
+      }
       return;
     }
 
-    try {
-      const token = localStorage.getItem('token');
+    // 2. Khởi tạo kết nối với Token xác thực
+    const token = localStorage.getItem('token');
+    const socketInstance = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
+      auth: { token },
+      reconnection: true,
+      reconnectionAttempts: 5,
+    });
 
-      // Khởi tạo socket connection với JWT token
-      const socketInstance = io(import.meta.env.VITE_SOCKET_URL, {
-        auth: {
-          token: token, // Gửi token để server xác thực
-        },
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        reconnectionAttempts: 5,
-      });
+    socketInstance.on('connect', () => {
+      console.log('✅ Connected to Socket Server');
+      setIsConnected(true);
+    });
 
-      /**
-       * Lắng nghe sự kiện 'connectionConfirmed'
-       * Server gửi thông báo khi socket đã kết nối thành công
-       */
-      socketInstance.on('connectionConfirmed', (data) => {
-        console.log('✅ Socket kết nối thành công:', data);
-        setIsConnected(true);
-      });
+    // ============================================================
+    // 🚀 LẮNG NGHE THÔNG BÁO TỔNG HỢP (MODEL 11)
+    // ============================================================
+    socketInstance.on('new_notification', (notification) => {
+      console.log('🔔 Thông báo mới:', notification);
 
-      /**
-       * Lắng nghe sự kiện 'newOrderAdmin'
-       * Thông báo khi có đơn hàng mới (chỉ hiển thị cho Admin)
-       */
-      socketInstance.on('newOrderAdmin', (notification) => {
-        if (user?.role === 'admin') {
-          console.log('📧 Đơn hàng mới:', notification);
-          toast.custom((t) => (
-            <div className="bg-white p-4 rounded-lg shadow-lg border-l-4 border-green-500">
-              <h3 className="font-bold text-lg text-gray-800">{notification.title}</h3>
-              <p className="text-sm text-gray-600">{notification.message}</p>
-              <p className="text-xs text-gray-500 mt-2">
-                💰 {notification.order?.totalAmount.toLocaleString('vi-VN')} VNĐ
-              </p>
-            </div>
-          ));
-        }
-      });
-
-      /**
-       * Lắng nghe sự kiện 'orderStatusUpdate'
-       * Thông báo cập nhật trạng thái đơn hàng (hiển thị cho Customer)
-       */
-      socketInstance.on('orderStatusUpdate', (notification) => {
-        console.log('📦 Cập nhật trạng thái đơn:', notification);
-        toast.custom((t) => (
-          <div className="bg-white p-4 rounded-lg shadow-lg border-l-4 border-blue-500">
-            <h3 className="font-bold text-lg text-gray-800">{notification.title}</h3>
-            <p className="text-sm text-gray-600">{notification.message}</p>
-            <p className="text-xs text-gray-500 mt-2">
-              Trạng thái: {notification.order?.status}
-            </p>
-          </div>
-        ));
-      });
-
-      /**
-       * Lắng nghe sự kiện 'disconnect'
-       * Hiển thị thông báo khi mất kết nối
-       */
-      socketInstance.on('disconnect', () => {
-        console.log('❌ Socket đã ngắt kết nối');
-        setIsConnected(false);
-      });
-
-      /**
-       * Lắng nghe sự kiện 'connect_error'
-       * Xử lý lỗi kết nối
-       */
-      socketInstance.on('connect_error', (error) => {
-        console.error('❌ Lỗi kết nối socket:', error.message);
-        toast.error('Mất kết nối. Đang thử kết nối lại...');
-      });
-
-      /**
-       * Lắng nghe sự kiện 'reconnect'
-       * Thông báo khi kết nối lại thành công
-       */
-      socketInstance.on('reconnect', () => {
-        console.log('✅ Đã kết nối lại thành công');
-        setIsConnected(true);
-        toast.success('Đã kết nối lại');
-      });
-
-      setSocket(socketInstance);
-
-      // Cleanup khi component unmount
-      return () => {
-        socketInstance.disconnect();
+      const typeConfig = {
+        ORDER: { color: 'border-black', icon: '🛍️' },
+        PROMOTION: { color: 'border-red-500', icon: '🎁' },
+        SYSTEM: { color: 'border-amber-500', icon: '⚠️' },
       };
-    } catch (error) {
-      console.error('Lỗi khởi tạo socket:', error);
-    }
+
+      const config = typeConfig[notification.type] || { color: 'border-zinc-300', icon: '🔔' };
+
+      // Toast giao diện Business (Chữ nhỏ, thanh thoát)
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-2xl rounded-[24px] pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-8 ${config.color} overflow-hidden`}>
+          <div className="flex-1 w-0 p-5">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5 text-2xl">{config.icon}</div>
+              <div className="ml-4 flex-1">
+                <p className="text-[9px] font-black uppercase tracking-[3px] text-zinc-400 mb-1">{notification.type} Alert</p>
+                <p className="text-sm font-black text-black uppercase tracking-tight">{notification.title}</p>
+                <p className="mt-1 text-[11px] font-medium text-zinc-500 leading-relaxed">{notification.message}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex border-l border-zinc-100">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      ), { duration: 5000 });
+    });
+
+    socketInstance.on('disconnect', () => setIsConnected(false));
+    
+    socketInstance.on('connect_error', (error) => {
+      console.error('❌ Socket Error:', error.message);
+    });
+
+    setSocket(socketInstance);
+
+    return () => {
+      socketInstance.disconnect();
+    };
   }, [isAuthenticated, user]);
 
-  /**
-   * Hàm phát sự kiện emit tới server (nếu cần)
-   */
-  const emit = useCallback(
-    (event, data) => {
-      if (socket && socket.connected) {
-        socket.emit(event, data);
-      }
-    },
-    [socket]
-  );
-
-  /**
-   * Hàm để test kết nối socket
-   */
-  const testConnection = useCallback(() => {
-    if (socket && socket.connected) {
-      socket.emit('ping');
-      socket.on('pong', (data) => {
-        console.log('🎯 Socket đang hoạt động:', data);
-        toast.success('Socket đang hoạt động bình thường');
-      });
-    } else {
-      toast.error('Socket chưa kết nối');
-    }
+  const emit = useCallback((event, data) => {
+    if (socket?.connected) socket.emit(event, data);
   }, [socket]);
 
-  const value = {
-    socket,
-    isConnected,
-    onlineAdmins,
-    emit,
-    testConnection,
-  };
+  // Truyền toàn bộ các biến cần thiết vào value
+  const value = { socket, isConnected, emit };
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
+};
+
+
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (!context) {
+    throw new Error('useSocket must be used within a SocketProvider');
+  }
+  return context; // Trả về { socket, isConnected, emit }
 };
