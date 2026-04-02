@@ -1,4 +1,4 @@
-const User = require('../models/user');
+const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
@@ -41,6 +41,7 @@ const register = async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(409).json({ success: false, message: 'Email này đã được đăng ký.' });
 
+    // Khởi tạo User mới (chưa lưu vội)
     const newUser = new User({
       fullName: fullName.trim(),
       email: email.toLowerCase(),
@@ -49,10 +50,55 @@ const register = async (req, res) => {
       role: 'customer', // ✅ Đồng bộ customer
     });
 
-    const savedUser = await newUser.save();
-    const token = generateToken(savedUser._id, savedUser.role);
+    // 🚀 TẠO TOKEN XÁC THỰC EMAIL
+    // Dùng thư viện crypto có sẵn của Node.js
+    const verificationToken = crypto.randomBytes(20).toString('hex');
+    
+    // Mã hóa token trước khi lưu vào DB (bảo mật y chang luồng Quên mật khẩu)
+    newUser.emailVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    newUser.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // Hạn 24 giờ
 
-    return res.status(201).json({ success: true, message: 'Đăng ký tài khoản thành công.', data: { token, user: savedUser } });
+    // Lưu user vào DB (Lúc này isVerified trong Model vẫn đang là false)
+    await newUser.save();
+
+    // 🚀 GỬI EMAIL XÁC THỰC
+    // Link này trỏ về Frontend. FE bắt route này và gọi API xác thực
+    const verifyUrl = `http://localhost:5173/verify-email/${verificationToken}`; 
+    
+    // Giao diện Email xịn sò một chút
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee;">
+        <h2 style="color: #000; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 10px;">Xác thực tài khoản</h2>
+        <p>Chào <b>${newUser.fullName}</b>,</p>
+        <p>Cảm ơn bạn đã đăng ký tài khoản tại <b>Fashion Shop</b>. Để hoàn tất, vui lòng click vào nút bên dưới để xác thực email của bạn:</p>
+        <a href="${verifyUrl}" style="display: inline-block; background: #000; color: #fff; padding: 12px 25px; text-decoration: none; font-weight: bold; margin: 20px 0;">XÁC THỰC EMAIL</a>
+        <p>Link này sẽ tự động hết hạn sau 24 giờ.</p>
+      </div>
+    `;
+
+    try {
+      await sendEmail({
+        email: newUser.email,
+        subject: 'Xác thực tài khoản - Fashion Shop',
+        html: htmlContent
+      });
+      
+      // Thành công thì trả về message, TUYỆT ĐỐI KHÔNG trả về JWT token để không cho đăng nhập liền
+      return res.status(201).json({ 
+        success: true, 
+        message: 'Đăng ký thành công! Vui lòng kiểm tra hộp thư email để xác thực tài khoản.' 
+      });
+
+    } catch (emailError) {
+      // Rollback: Xóa user nếu gửi mail lỗi để khách không bị kẹt email đó
+      await User.findByIdAndDelete(newUser._id);
+      console.error("Lỗi gửi mail xác thực:", emailError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Lỗi hệ thống gửi mail. Vui lòng đăng ký lại sau.' 
+      });
+    }
+
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi đăng ký.' });
   }
@@ -73,6 +119,9 @@ const login = async (req, res) => {
 
     if (user.isActive === false) {
       return res.status(403).json({ success: false, message: 'Tài khoản hiện đang bị tạm khóa. Vui lòng liên hệ Admin.' });
+    }
+    if (!user.isVerified) {
+      return res.status(403).json({ success: false, message: 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email!' });
     }
 
     const token = generateToken(user._id, user.role);
@@ -159,5 +208,31 @@ const resetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+const verifyEmail = async (req, res) => {
+  try {
+    // Mã hóa token gửi từ FE lên để so sánh với token đã mã hóa trong DB
+    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
-module.exports = { register, login, forgotPassword, resetPassword };
+    // Tìm user có token này và token chưa hết hạn
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Link xác thực không hợp lệ hoặc đã hết hạn.' });
+    }
+
+    // Cập nhật trạng thái xác thực
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpire = undefined;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Xác thực tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { register, login, forgotPassword, resetPassword, verifyEmail };
