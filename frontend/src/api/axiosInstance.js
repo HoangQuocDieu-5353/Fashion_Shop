@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true, // Cho phép gửi cookies
+  timeout: 30000,
 });
 
 /**
