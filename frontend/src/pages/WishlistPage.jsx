@@ -1,96 +1,118 @@
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
-import { useCart } from '../context/CartContext';
-import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
+import { motion } from 'framer-motion'; // Nếu ông giáo có cài framer-motion, không thì dùng class animate-in
 
 export const WishlistPage = () => {
-  const { wishlist, toggleWishlist } = useWishlist();
-  const { fetchCartCount } = useCart();
+  const { wishlist, toggleWishlist, loading } = useWishlist();
   const BASE_URL = "http://localhost:5000";
 
-  // Logic thêm nhanh vào giỏ hàng từ trang yêu thích
-  const handleMoveToCart = async (product) => {
-    // Lưu ý: Ở đây tui mặc định chọn Size/Màu đầu tiên nếu sản phẩm có nhiều option
-    // Hoặc ông giáo có thể điều hướng về trang chi tiết để khách chọn kỹ hơn
-    toast.success("Đang chuyển đến trang chi tiết để chọn size...");
+  // Helper lấy ảnh chuẩn chỉnh
+  const getImgUrl = (path) => {
+    if (!path) return 'https://placehold.co/400x500?text=No+Image';
+    if (path.startsWith('http')) return path;
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    return `${BASE_URL}/${cleanPath}`;
   };
 
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center text-[10px] font-bold tracking-[5px] text-zinc-300 uppercase animate-pulse">
+      Đang tải danh sách...
+    </div>
+  );
+
   return (
-    <div className="bg-white min-h-screen pt-32 pb-20">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <div className="bg-white min-h-screen pt-40 pb-20" style={{ fontFamily: "'Jost', sans-serif" }}>
+      <div className="max-w-[1400px] mx-auto px-8">
         
-        {/* TIÊU ĐỀ TRANG */}
-        <div className="text-center mb-20 space-y-4">
-          <h1 className="text-[28px] font-black uppercase tracking-[10px] text-black italic">
-            My Wishlist
-          </h1>
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-[4px]">
-            {wishlist.length} Sản phẩm đã được lưu
-          </p>
-          <div className="w-12 h-[1px] bg-black mx-auto mt-6"></div>
+        {/* HEADER TRANG */}
+        <div className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-zinc-100 pb-12">
+          <div className="space-y-4">
+            <h1 style={{ fontFamily: "'Montserrat', sans-serif" }} className="text-[32px] font-black uppercase tracking-[12px] text-black">
+              MY <span className="text-zinc-300 font-light italic">WISHLIST</span>
+            </h1>
+            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-[4px]">
+              {wishlist?.length || 0} Sản phẩm tâm đắc
+            </p>
+          </div>
+          <Link to="/products" className="text-[10px] font-bold uppercase tracking-[3px] text-zinc-400 hover:text-black transition-all flex items-center gap-3 group">
+            Khám phá thêm <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform"/>
+          </Link>
         </div>
 
-        {wishlist.length === 0 ? (
+        {(!wishlist || wishlist.length === 0) ? (
           /* 🏠 TRẠNG THÁI TRỐNG */
-          <div className="flex flex-col items-center justify-center py-20 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center text-zinc-200">
-              <ShoppingBag size={40} strokeWidth={1} />
+          <div className="flex flex-col items-center justify-center py-32 space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div className="relative">
+               <ShoppingBag size={80} strokeWidth={0.5} className="text-zinc-100" />
+               <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-black rounded-full animate-ping"></div>
+               </div>
             </div>
-            <div className="text-center space-y-2">
-              <p className="text-[12px] font-bold uppercase tracking-[3px] text-black">Danh sách yêu thích đang trống</p>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-widest italic">Hãy chọn những món đồ ông giáo ưng ý nhất nhé!</p>
+            <div className="text-center space-y-3">
+              <h2 className="text-[13px] font-bold uppercase tracking-[5px] text-black">Danh sách đang trống</h2>
+              <p className="text-[11px] text-zinc-400 uppercase tracking-[2px] italic">"Phong cách là một cách để nói bạn là ai mà không cần phải nói."</p>
             </div>
-            <Link to="/products" className="flex items-center gap-4 text-[11px] font-black uppercase tracking-[4px] border-b border-black pb-2 hover:gap-6 transition-all">
-              Tiếp tục mua sắm <ArrowRight size={16} />
+            <Link to="/products" className="bg-black text-white px-12 py-5 text-[10px] font-bold uppercase tracking-[4px] hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-100">
+              Bắt đầu lựa chọn
             </Link>
           </div>
         ) : (
           /* 🛍️ DANH SÁCH SẢN PHẨM */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16 animate-in fade-in duration-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-20">
             {wishlist.map((product) => (
-              <div key={product._id} className="group space-y-5 relative">
+              <div key={product._id} className="group">
                 
-                {/* Ảnh sản phẩm */}
-                <div className="relative aspect-[3/4] overflow-hidden bg-zinc-50 shadow-sm">
-                  <img 
-                    src={`${BASE_URL}${product.mainImage}`} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                    alt={product.name}
-                  />
+                {/* Image Container */}
+                <div className="relative aspect-[3/4] overflow-hidden bg-zinc-50 mb-6">
+                  <Link to={`/products/${product._id}`}>
+                    <img 
+                      // Ưu tiên images[0] vì backend thường trả về mảng ảnh
+                      src={getImgUrl(product.images?.[0] || product.mainImage)} 
+                      className="w-full h-full object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-110" 
+                      alt={product.name}
+                    />
+                  </Link>
                   
-                  {/* Nút Xóa khỏi Wishlist */}
+                  {/* Quick Delete */}
                   <button 
                     onClick={() => toggleWishlist(product)}
-                    className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-md text-zinc-400 hover:text-red-500 transition-all rounded-full opacity-0 group-hover:opacity-100"
+                    className="absolute top-5 right-5 w-10 h-10 bg-white/90 backdrop-blur-sm flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-white transition-all duration-300 rounded-full shadow-sm translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={16} strokeWidth={1.5} />
                   </button>
+
+                  {/* Overlay Button */}
+                  <div className="absolute bottom-0 left-0 w-full p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                    <Link 
+                      to={`/products/${product._id}`}
+                      className="w-full bg-white/95 backdrop-blur-md py-4 text-[9px] font-bold uppercase tracking-[3px] flex items-center justify-center gap-3 hover:bg-black hover:text-white transition-all"
+                    >
+                      XEM CHI TIẾT <ArrowRight size={12}/>
+                    </Link>
+                  </div>
                 </div>
 
-                {/* Thông tin */}
-                <div className="text-center space-y-2">
-                  <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-[3px]">
-                    {product.category?.name || 'Collection'}
+                {/* Product Info */}
+                <div className="space-y-3 text-center">
+                  <p className="text-[9px] text-zinc-300 font-bold uppercase tracking-[4px]">
+                    {product.category?.name || 'Essential'}
                   </p>
                   <Link to={`/products/${product._id}`}>
-                    <h3 className="text-[13px] font-bold text-black hover:underline underline-offset-4 tracking-tight truncate px-2">
+                    <h3 className="text-[12px] font-bold text-black uppercase tracking-widest hover:text-zinc-500 transition-colors">
                       {product.name}
                     </h3>
                   </Link>
-                  <p className="text-[14px] font-black text-black">
-                    {product.price.toLocaleString('vi-VN')} Đ
-                  </p>
-                  
-                  {/* Nút Xem chi tiết / Mua ngay */}
-                  <div className="pt-4">
-                    <Link 
-                      to={`/products/${product._id}`}
-                      className="inline-block w-full py-3 border border-black text-[10px] font-black uppercase tracking-[3px] hover:bg-black hover:text-white transition-all duration-500"
-                    >
-                      Xem chi tiết
-                    </Link>
+                  <div className="flex items-center justify-center gap-4">
+                     <span className="text-[13px] font-black text-black tracking-tighter">
+                       {product.price?.toLocaleString('vi-VN')} VNĐ
+                     </span>
                   </div>
+                  
+                  {/* Stock Status */}
+                  {product.stock <= 0 && (
+                    <p className="text-[8px] font-bold text-red-500 uppercase tracking-widest">Tạm hết hàng</p>
+                  )}
                 </div>
               </div>
             ))}
