@@ -1,6 +1,6 @@
-# 👗 Fashion Shop - Frontend (React + Vite)
+#  Fashion Shop - Frontend (React + Vite)
 
-## 📚 Giới Thiệu
+##  Giới Thiệu
 
 Frontend của Fashion Shop được xây dựng với React (Vite) với các tính năng:
 
@@ -13,7 +13,7 @@ Frontend của Fashion Shop được xây dựng với React (Vite) với các t
 
 ---
 
-## 🚀 Cài Đặt & Chạy
+## Cài Đặt & Chạy
 
 ### 1. Cài Đặt Dependencies
 
@@ -45,7 +45,7 @@ npm run preview
 
 ---
 
-## 📁 Cấu Trúc Thư Mục
+## Cấu Trúc Thư Mục
 
 ```
 frontend/
@@ -87,7 +87,7 @@ frontend/
 
 ---
 
-## 🔐 Xác Thực (Auth Flow)
+## Xác Thực (Auth Flow)
 
 ### 1. Đăng Nhập
 
@@ -132,13 +132,13 @@ if (token) {
 ### 3. Xử Lý Lỗi 401
 
 Khi token hết hạn, response interceptor tự động:
-- ❌ Xóa token khỏi localStorage
-- ⚠️ Hiển thị toast error
-- 🔄 Redirect về /login
+- Xóa token khỏi localStorage
+- Hiển thị toast error
+- Redirect về /login
 
 ---
 
-## 🔌 Socket.io Real-time Notifications
+## Socket.io Real-time Notifications
 
 ### 1. Kết Nối Socket
 
@@ -174,7 +174,7 @@ socket.on('orderStatusUpdate', (notification) => {
 
 ---
 
-## 🛣️ Routing & Protected Routes
+## Routing & Protected Routes
 
 ### 1. ProtectedRoute - Chỉ Admin & Customer
 
