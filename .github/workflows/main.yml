@@ -1,0 +1,63 @@
+name: CI/CD Fashion Shop Standard Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ] # Tự động chạy trên cả 2 nhánh quan trọng
+  workflow_dispatch:              # Nút bấm thủ công
+
+jobs:
+  # GIAI ĐOẠN 1: TEST & LINT (Kiểm tra lỗi code)
+  test-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout code
+        uses: actions/checkout@v4
+
+      - name: 2. Thiết lập Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 3. Kiểm tra Backend (Test)
+        run: |
+          cd backend
+          npm install
+          # npm test # Bỏ comment nếu dự án bạn đã viết file test
+
+      - name: 4. Kiểm tra Frontend (Test)
+        run: |
+          cd frontend
+          npm install
+          # npm run lint # Kiểm tra chuẩn viết code
+
+  # GIAI ĐOẠN 2: BUILD & PUSH (Chỉ chạy khi Giai đoạn 1 thành công)
+  build-and-push:
+    needs: test-and-lint # Ràng buộc: Test xong mới được Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: 2. Đăng nhập Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 3. Build và Push Image BACKEND
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend 
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/fashion-shop-be:latest
+            ${{ secrets.DOCKER_USERNAME }}/fashion-shop-be:${{ github.run_number }}
+
+      - name: 4. Build và Push Image FRONTEND
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/fashion-shop-fe:latest
+            ${{ secrets.DOCKER_USERNAME }}/fashion-shop-fe:${{ github.run_number }}
