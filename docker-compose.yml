@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 1. Database Service (MongoDB)
+  db_mongo:
+    image: mongo:6.0
+    container_name: ecom_mongodb
+    ports:
+      # Map cổng 27017 ra ngoài máy thật để bạn có thể dùng MongoDB Compass xem dữ liệu
+      - "27017:27017"
+    environment:
+      # Thiết lập tài khoản admin cho database
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+      # Tự động tạo database tên là "ecom_database" khi khởi chạy lần đầu
+      MONGO_INITDB_DATABASE: ecom_database
+    volumes:
+      # Lưu trữ dữ liệu vĩnh viễn, tránh mất data khi tắt container
+      - mongo_data:/data/db
+
+  # 2. Backend Service (Node.js)
+  backend_api:
+    build: ./backend
+    container_name: ecom_backend
+    ports:
+      - "5000:5000"
+    environment:
+      # Chú ý quan trọng: Tên host kết nối bây giờ là "db_mongo" (tên service ở trên)
+      - MONGO_URI=mongodb://root:rootpassword@db_mongo:27017/ecom_database?authSource=admin
+    depends_on:
+      - db_mongo
+
+  # 3. Frontend Service (React/Vue)
+  frontend_web:
+    build: ./frontend
+    container_name: ecom_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend_api
+
+# Khai báo volume dùng chung
+volumes:
+  mongo_data:
