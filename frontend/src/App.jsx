@@ -23,6 +23,7 @@ import { WishlistPage } from './pages/WishlistPage';
 // Pages - Auth
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
 
 // Pages - Admin
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -50,6 +51,7 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+                <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
 
                 {/* ==================== 2. USER ROUTES (Dùng chung Layout) ==================== */}
                 <Route element={<Layout><Outlet /></Layout>}>

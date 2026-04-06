@@ -12,8 +12,11 @@ const { createNotification } = require('../utils/notificationHelper');
  * Tạo đơn hàng từ giỏ hàng (ĐÃ ÁP DỤNG TRANSACTION)
  * POST /api/orders/create
  */
+/**
+ * Tạo đơn hàng từ giỏ hàng (ĐÃ ÁP DỤNG TRANSACTION)
+ * POST /api/orders/create
+ */
 const createOrder = async (req, res) => {
-  // 1. Khởi tạo session
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -25,11 +28,10 @@ const createOrder = async (req, res) => {
       throw new Error('MISSING_SHIPPING_INFO');
     }
 
-    // 2. Lấy giỏ hàng (Dùng session)
+    // 1. LẤY GIỎ HÀNG: Chỉ populate product, KHÔNG populate variant vì Cart ko lưu variant._id
     const cart = await Cart.findOne({ user: userId })
       .session(session)
-      .populate('items.product')
-      .populate('items.variant');
+      .populate('items.product');
 
     if (!cart || cart.items.length === 0) {
       throw new Error('CART_EMPTY');
@@ -38,24 +40,38 @@ const createOrder = async (req, res) => {
     const orderItems = [];
     let subTotal = 0;
 
-    // 3. Kiểm tra kho Inventory và chuẩn bị dữ liệu
+    // 2. TÌM VARIANT VÀ KIỂM TRA KHO TỒN
     for (const item of cart.items) {
-      if (!item.product || !item.variant) {
+      if (!item.product) {
         throw new Error('PRODUCT_NOT_FOUND');
       }
 
-      // Kiểm tra tồn kho thực tế (Dùng session)
-      const inv = await Inventory.findOne({ variant: item.variant._id }).session(session);
+      // 🚀 BƯỚC QUAN TRỌNG: Tìm ProductVariant dựa trên product, size, color từ Giỏ hàng
+      const variant = await ProductVariant.findOne({
+        product: item.product._id,
+        size: item.size,
+        color: item.color
+      }).session(session);
+
+      if (!variant) {
+        throw new Error(`VARIANT_NOT_FOUND|${item.product.name}|${item.color}/${item.size}`);
+      }
+
+      // Dùng variant._id vừa tìm được để check kho Inventory
+      const inv = await Inventory.findOne({ variant: variant._id }).session(session);
+      
       if (!inv || item.quantity > inv.stock) {
         throw new Error(`INSUFFICIENT_STOCK|${item.product.name}|${item.color}/${item.size}|${inv?.stock || 0}`);
       }
 
-      const itemPrice = item.variant.price || item.product.price;
+      // Giá variant (nếu null thì lấy giá product gốc - giống trong DB của ông)
+      const itemPrice = variant.price || item.product.price;
       subTotal += itemPrice * item.quantity;
 
+      // Đưa vào mảng OrderItem (Lưu luôn cả variant._id cho chuẩn Order Schema)
       orderItems.push({
         product: item.product._id,
-        variant: item.variant._id,
+        variant: variant._id, // 🚀 Đã có ID variant chuẩn
         quantity: item.quantity,
         size: item.size,
         color: item.color,
@@ -63,7 +79,7 @@ const createOrder = async (req, res) => {
       });
     }
 
-    // 4. Xử lý Mã giảm giá (Coupon)
+    // 3. Xử lý Mã giảm giá (Coupon)
     let discountAmount = 0;
     let couponData = null;
 
@@ -91,10 +107,10 @@ const createOrder = async (req, res) => {
 
     const totalAmount = Math.max(0, subTotal - discountAmount);
 
-    // 5. Tạo đơn hàng mới (Dùng session)
+    // 4. Tạo đơn hàng mới
     const order = new Order({
       user: userId,
-      items: orderItems,
+      items: orderItems, // Chứa cả product và variant
       subTotal,
       discountAmount,
       totalAmount,
@@ -107,7 +123,7 @@ const createOrder = async (req, res) => {
 
     await order.save({ session });
 
-    // 6. Cập nhật lượt dùng Coupon (Dùng session)
+    // 5. Cập nhật lượt dùng Coupon
     if (couponData) {
       await Coupon.findByIdAndUpdate(couponId, {
         $inc: { usedCount: 1 },
@@ -115,21 +131,21 @@ const createOrder = async (req, res) => {
       }, { session });
     }
 
-    // 7. TRỪ KHO INVENTORY (Dùng session)
+    // 6. TRỪ KHO INVENTORY
     const inventoryOps = orderItems.map((item) => ({
       updateOne: {
-        filter: { variant: item.variant },
+        filter: { variant: item.variant }, // Dùng chuẩn variant._id
         update: { 
           $inc: { 
             stock: -item.quantity,
-            stockCount: item.quantity 
+            stockCount: item.quantity // Giả sử stockCount là số lượng đã bán
           } 
         },
       },
     }));
     await Inventory.bulkWrite(inventoryOps, { session });
 
-    // 8. Xóa giỏ hàng (Dùng session)
+    // 7. Xóa giỏ hàng
     cart.items = [];
     await cart.save({ session });
 
@@ -140,7 +156,7 @@ const createOrder = async (req, res) => {
     session.endSession();
 
     // ============================================================
-    // SAU KHI COMMIT THÀNH CÔNG: Gửi thông báo & Alert
+    // THÔNG BÁO VÀ KẾT THÚC
     // ============================================================
     setImmediate(async () => {
       for (const item of orderItems) {
@@ -163,7 +179,6 @@ const createOrder = async (req, res) => {
     });
 
     const customer = await User.findById(userId);
-    // Thông báo cho khách
     createNotification(global.io, {
       userId: userId,
       title: 'Đặt hàng thành công 🛒',
@@ -173,7 +188,6 @@ const createOrder = async (req, res) => {
       relatedId: order._id
     });
 
-    // Thông báo cho admin
     const admin = await User.findOne({ role: 'admin' });
     if (admin) {
       createNotification(global.io, {
@@ -195,7 +209,6 @@ const createOrder = async (req, res) => {
     });
 
   } catch (error) {
-    // Nếu có lỗi, hủy toàn bộ thay đổi
     await session.abortTransaction();
     session.endSession();
 
@@ -204,7 +217,11 @@ const createOrder = async (req, res) => {
     let status = 500;
     let message = 'Lỗi server khi tạo đơn hàng';
 
-    if (error.message.startsWith('INSUFFICIENT_STOCK')) {
+    if (error.message.startsWith('VARIANT_NOT_FOUND')) {
+      const [_, name, variant] = error.message.split('|');
+      status = 400;
+      message = `Phiên bản "${name}" (${variant}) hiện không còn tồn tại trên hệ thống.`;
+    } else if (error.message.startsWith('INSUFFICIENT_STOCK')) {
       const [_, name, variant, stock] = error.message.split('|');
       status = 400;
       message = `Sản phẩm "${name}" (${variant}) không đủ hàng. Còn lại: ${stock}`;
@@ -221,6 +238,9 @@ const createOrder = async (req, res) => {
     } else if (error.message === 'MISSING_SHIPPING_INFO') {
       status = 400;
       message = 'Thiếu thông tin giao hàng';
+    } else if (error.message === 'PRODUCT_NOT_FOUND') {
+      status = 400;
+      message = 'Sản phẩm trong giỏ không hợp lệ hoặc đã bị xóa';
     }
 
     return res.status(status).json({ success: false, message });

@@ -79,24 +79,22 @@ export const AuthProvider = ({ children }) => {
    * Đăng ký tài khoản mới
    * @param {object} userData - { fullName, email, password, phone }
    */
+  /**
+   * Đăng ký tài khoản mới (Cập nhật cho luồng Verify Email)
+   */
   const register = useCallback(async (userData) => {
     try {
       setLoading(true);
       const response = await axiosInstance.post('/auth/register', userData);
 
+      // Nếu Backend trả về success: true
       if (response.data.success) {
-        const { token, user: newUser } = response.data.data;
-
-        // Lưu token vào localStorage
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(newUser));
-
-        // Cập nhật state
-        setUser(newUser);
-        setIsAuthenticated(true);
-
-        toast.success('Đăng ký thành công');
-        return response.data.data;
+        // 🚀 CHỖ NÀY QUAN TRỌNG: 
+        // Không lưu token, không setIsAuthenticated vì tài khoản chưa verify.
+        // Chỉ trả về data để RegisterPage biết là đã gửi mail thành công.
+        
+        toast.success(response.data.message || 'Vui lòng kiểm tra email để xác thực!');
+        return response.data; 
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Đăng ký thất bại';

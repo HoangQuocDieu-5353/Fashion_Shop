@@ -10,7 +10,7 @@ const calculateCartTotals = (items) => {
   let totalQuantity = 0;
 
   items.forEach((item) => {
-    if (item.product) {
+    if (item && item.product && item.product.isDeleted !== true) { 
       totalPrice += (item.product.price || 0) * item.quantity;
       totalQuantity += item.quantity;
     }
@@ -52,7 +52,7 @@ const addToCart = async (req, res) => {
     }
 
     await cart.save();
-    const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price mainImage');
+    const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price images mainImage');
     const { totalPrice, totalQuantity } = calculateCartTotals(updatedCart.items);
 
     return res.status(201).json({
@@ -69,29 +69,24 @@ const addToCart = async (req, res) => {
 const getCart = async (req, res) => {
   try {
     const userId = req.user._id;
-    let cart = await Cart.findOne({ user: userId }).populate('items.product', 'name price mainImage');
+    // Populate để lấy thông tin sản phẩm
+    let cart = await Cart.findOne({ user: userId }).populate('items.product', 'name price images mainImage');
+    if (!cart) return res.status(200).json({ success: true, data: { items: [] } });
 
-    if (!cart) {
-      return res.status(200).json({
-        success: true,
-        data: { user: userId, items: [], totalPrice: 0, totalQuantity: 0 },
-      });
-    }
-
-    const validItems = cart.items.filter((item) => item.product !== null);
-    if (validItems.length !== cart.items.length) {
-      cart.items = validItems;
-      await cart.save();
-    }
-
-    const { totalPrice, totalQuantity } = calculateCartTotals(validItems);
+    // Tính toán lại tổng tiền (Hàm tính tổng ở Bước 1 sẽ tự bỏ qua món bị xóa)
+    const { totalPrice, totalQuantity } = calculateCartTotals(cart.items);
 
     return res.status(200).json({
       success: true,
-      data: { _id: cart._id, items: validItems, totalPrice, totalQuantity },
+      data: {
+        _id: cart._id,
+        items: cart.items, // Trả về đủ, món nào bị xóa thì product sẽ là null
+        totalPrice,
+        totalQuantity
+      },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Lỗi lấy giỏ hàng' });
+    return res.status(500).json({ success: false, message: 'Lỗi server' });
   }
 };
 
@@ -117,7 +112,7 @@ const updateQuantity = async (req, res) => {
     await cart.save();
 
     // 🚀 Lấy lại giỏ hàng và tính toán lại tổng tiền để trả về cho FE
-    const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price mainImage');
+    const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price images mainImage');
     const { totalPrice, totalQuantity } = calculateCartTotals(updatedCart.items);
 
     return res.status(200).json({
@@ -142,7 +137,7 @@ const removeItem = async (req, res) => {
     cart.items = cart.items.filter((item) => item._id.toString() !== itemId);
     await cart.save();
 
-    const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price mainImage');
+    const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price images mainImage');
     const { totalPrice, totalQuantity } = calculateCartTotals(updatedCart.items);
 
     return res.status(200).json({
