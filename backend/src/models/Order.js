@@ -88,7 +88,7 @@ const orderSchema = new mongoose.Schema(
         'Shipping', 
         'Delivered', 
         'Cancelled',
-        // --- 3 Trạng thái mới cho nghiệp vụ Đổi Trả ---
+      
         'Return Requested',  // Khách vừa gửi yêu cầu
         'Refund Processing', // Admin đã duyệt, đang chờ xử lý tiền/hàng
         'Returned'           // Hoàn tất quy trình đổi trả
