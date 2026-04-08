@@ -47,7 +47,7 @@ const register = async (req, res) => {
       email: email.toLowerCase(),
       password,
       phone: phone || '',
-      role: 'customer', // ✅ Đồng bộ customer
+      role: 'customer', 
     });
 
     // 🚀 TẠO TOKEN XÁC THỰC EMAIL
@@ -65,7 +65,7 @@ const register = async (req, res) => {
     // Link này trỏ về Frontend. FE bắt route này và gọi API xác thực
     const verifyUrl = `http://localhost:5173/verify-email/${verificationToken}`; 
     
-    // Giao diện Email xịn sò một chút
+    // Giao diện Email 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee;">
         <h2 style="color: #000; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 10px;">Xác thực tài khoản</h2>
@@ -83,7 +83,7 @@ const register = async (req, res) => {
         html: htmlContent
       });
       
-      // Thành công thì trả về message, TUYỆT ĐỐI KHÔNG trả về JWT token để không cho đăng nhập liền
+      // Thành công thì trả về message yêu cầu người dùng kiểm tra email để xác thực
       return res.status(201).json({ 
         success: true, 
         message: 'Đăng ký thành công! Vui lòng kiểm tra hộp thư email để xác thực tài khoản.' 

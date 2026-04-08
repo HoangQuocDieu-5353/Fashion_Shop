@@ -17,7 +17,7 @@ const generateSlug = (text) => {
 };
 
 /**
- * Hàm helper xử lý ảnh (Giữ nguyên tinh hoa của ông giáo)
+ * Hàm helper xử lý ảnh kết hợp giữa file upload (req.files) và ảnh gửi qua body (body.images)
  */
 const processImages = (files, bodyImages) => {
   let finalImages = [];
@@ -104,11 +104,11 @@ const createProduct = async (req, res) => {
       }
 
       // Gán dữ liệu để trả về sau khi commit thành công
-      result = {
-        product: newProduct,
-        variantsCount: createdVariants.length
-      };
-    });
+        result = {
+          product: newProduct,
+          variantsCount: createdVariants.length
+        };
+      });
 
     // Nếu đến đây nghĩa là Transaction đã COMMIT thành công
     return res.status(201).json({

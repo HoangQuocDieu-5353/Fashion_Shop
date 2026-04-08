@@ -127,8 +127,7 @@ const createCategory = async (req, res) => {
     }
 
     // Tạo danh mục mới
-    // ✅ Chỉ cần gửi name và description
-    // ✅ Middleware pre('save') sẽ tự động tạo slug bằng slugify
+
     const newCategory = new Category({
       name: name.trim(),
       description: description ? description.trim() : '',
@@ -207,9 +206,6 @@ const updateCategory = async (req, res) => {
       category.description = description.trim();
     }
 
-    // ✅ KHÔNG xử lý slug thủ công
-    // ✅ Middleware pre('save') sẽ tự động cập nhật slug nếu name thay đổi
-    // ✅ Khi gọi save(), middleware sẽ detect isModified('name') và update slug mới
 
     // Lưu các thay đổi - Middleware sẽ cập nhật slug nếu name được thay đổi
     const updatedCategory = await category.save();

@@ -2,7 +2,7 @@ const Banner = require('../models/Banner');
 const fs = require('fs'); // Thư viện mặc định của Node.js để xử lý file
 const path = require('path');
 
-// 🚀 [GET] Public: Lấy danh sách banner đang hoạt động
+// [GET] Public: Lấy danh sách banner đang hoạt động
 exports.getActiveBanners = async (req, res) => {
   try {
     const banners = await Banner.find({ isActive: true })
@@ -14,7 +14,7 @@ exports.getActiveBanners = async (req, res) => {
   }
 };
 
-// 🚀 [GET] Admin: Lấy tất cả banner
+// [GET] Admin: Lấy tất cả banner
 exports.getAllBannersAdmin = async (req, res) => {
   try {
     const data = await Banner.find().sort('sortOrder');
@@ -24,7 +24,7 @@ exports.getAllBannersAdmin = async (req, res) => {
   }
 };
 
-// 🚀 [POST] Admin: Tạo mới Banner
+// [POST] Admin: Tạo mới Banner
 exports.createBanner = async (req, res) => {
   try {
     // Kiểm tra xem Multer đã bắt được file chưa
@@ -51,7 +51,7 @@ exports.createBanner = async (req, res) => {
   }
 };
 
-// 🚀 [PATCH] Admin: Cập nhật thông tin
+// [PATCH] Admin: Cập nhật thông tin
 exports.updateBanner = async (req, res) => {
   try {
     const banner = await Banner.findById(req.params.id);
@@ -81,7 +81,7 @@ exports.updateBanner = async (req, res) => {
   }
 };
 
-// 🚀 [DELETE] Admin: Xóa Banner
+// [DELETE] Admin: Xóa Banner
 exports.deleteBanner = async (req, res) => {
   try {
     const banner = await Banner.findById(req.params.id);

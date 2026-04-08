@@ -65,7 +65,7 @@ const addToCart = async (req, res) => {
   }
 };
 
-// 2. LẤY GIỎ HÀNG (Giữ nguyên logic của ông nhưng dùng Helper cho sạch)
+// 2. LẤY GIỎ HÀNG 
 const getCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -90,7 +90,7 @@ const getCart = async (req, res) => {
   }
 };
 
-// 3. CẬP NHẬT SỐ LƯỢNG (🚀 FIX LỖI TỔNG TIỀN TẠI ĐÂY)
+// 3. CẬP NHẬT SỐ LƯỢNG 
 const updateQuantity = async (req, res) => {
   try {
     const { itemId } = req.params;
@@ -111,7 +111,7 @@ const updateQuantity = async (req, res) => {
     item.quantity = quantity;
     await cart.save();
 
-    // 🚀 Lấy lại giỏ hàng và tính toán lại tổng tiền để trả về cho FE
+    //  Lấy lại giỏ hàng và tính toán lại tổng tiền để trả về cho FE
     const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price images mainImage');
     const { totalPrice, totalQuantity } = calculateCartTotals(updatedCart.items);
 
@@ -125,7 +125,7 @@ const updateQuantity = async (req, res) => {
   }
 };
 
-// 4. XÓA 1 MÓN (🚀 FIX LỖI TỔNG TIỀN TẠI ĐÂY)
+// 4. XÓA 1 MÓN KHỎI GIỎ
 const removeItem = async (req, res) => {
   try {
     const { itemId } = req.params;
