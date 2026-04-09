@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 
@@ -21,19 +22,25 @@ const calculateCartTotals = (items) => {
 
 // 1. THÊM VÀO GIỎ
 const addToCart = async (req, res) => {
+  // 1. Khởi tạo phiên làm việc (Session) và Bắt đầu Giao dịch
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { productId, quantity = 1, size, color } = req.body;
     const userId = req.user._id;
 
+    // 2. Ném lỗi thay vì return để nhảy thẳng xuống catch 
     if (!productId || !size || !color) {
-      return res.status(400).json({ success: false, message: 'Thiếu thông tin sản phẩm' });
+      throw { status: 400, message: 'Thiếu thông tin sản phẩm' };
     }
 
-    const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ success: false, message: 'Sản phẩm không tồn tại' });
-    if (quantity > product.stock) return res.status(400).json({ success: false, message: 'Vượt quá hàng tồn kho' });
+    // 3. Gắn `.session(session)` vào mọi thao tác ĐỌC dữ liệu
+    const product = await Product.findById(productId).session(session);
+    if (!product) throw { status: 404, message: 'Sản phẩm không tồn tại' };
+    if (quantity > product.stock) throw { status: 400, message: 'Vượt quá hàng tồn kho' };
 
-    let cart = await Cart.findOne({ user: userId });
+    let cart = await Cart.findOne({ user: userId }).session(session);
 
     if (!cart) {
       cart = new Cart({ user: userId, items: [{ product: productId, quantity, size, color }] });
@@ -44,14 +51,22 @@ const addToCart = async (req, res) => {
 
       if (existingItemIndex > -1) {
         const newQty = cart.items[existingItemIndex].quantity + quantity;
-        if (newQty > product.stock) return res.status(400).json({ success: false, message: 'Vượt quá hàng tồn kho' });
+        if (newQty > product.stock) throw { status: 400, message: 'Vượt quá hàng tồn kho' };
         cart.items[existingItemIndex].quantity = newQty;
       } else {
         cart.items.push({ product: productId, quantity, size, color });
       }
     }
 
-    await cart.save();
+    // 4. Gắn `{ session }` vào thao tác GHI dữ liệu
+    await cart.save({ session });
+
+    // 5. CHỐT GIAO DỊCH: Lưu vĩnh viễn vào Database
+    await session.commitTransaction();
+    session.endSession();
+
+    // 6. Sau khi DB đã an toàn, mới Query lại để lấy data đầy đủ (Populate) trả về cho Frontend
+    // Đoạn này nằm ngoài Transaction vì chỉ là thao tác đọc dữ liệu đã an toàn
     const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price images mainImage');
     const { totalPrice, totalQuantity } = calculateCartTotals(updatedCart.items);
 
@@ -60,8 +75,16 @@ const addToCart = async (req, res) => {
       message: 'Đã thêm vào giỏ hàng',
       data: { _id: updatedCart._id, items: updatedCart.items, totalPrice, totalQuantity },
     });
+
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Lỗi server' });
+    // 7. CÓ LỖI XẢY RA: Hủy bỏ toàn bộ thao tác nãy giờ 
+    await session.abortTransaction();
+    session.endSession();
+
+    const statusCode = error.status || 500;
+    const errorMessage = error.status ? error.message : 'Lỗi server';
+    
+    return res.status(statusCode).json({ success: false, message: errorMessage });
   }
 };
 
@@ -73,14 +96,14 @@ const getCart = async (req, res) => {
     let cart = await Cart.findOne({ user: userId }).populate('items.product', 'name price images mainImage');
     if (!cart) return res.status(200).json({ success: true, data: { items: [] } });
 
-    // Tính toán lại tổng tiền (Hàm tính tổng ở Bước 1 sẽ tự bỏ qua món bị xóa)
+    // Tính toán lại tổng tiền 
     const { totalPrice, totalQuantity } = calculateCartTotals(cart.items);
 
     return res.status(200).json({
       success: true,
       data: {
         _id: cart._id,
-        items: cart.items, // Trả về đủ, món nào bị xóa thì product sẽ là null
+        items: cart.items,
         totalPrice,
         totalQuantity
       },

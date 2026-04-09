@@ -21,11 +21,10 @@ const createCoupon = async (req, res) => {
   try {
     const newCoupon = await Coupon.create(req.body);
 
-    // 🚀 HỆ THỐNG THÔNG BÁO QUẢNG BÁ (Promotion Broadcast)
     // Lấy danh sách tất cả người dùng có role là 'user'
     const users = await User.find({ role: 'customer', isActive: true }).select('_id');
 
-    // Nội dung thông báo chuẩn Marketing
+      // Tạo nội dung thông báo dựa trên loại giảm giá
     const discountText = newCoupon.discountType === 'percent' 
       ? `${newCoupon.discountValue}%` 
       : `${newCoupon.discountValue.toLocaleString()}đ`;
@@ -33,19 +32,18 @@ const createCoupon = async (req, res) => {
     const promoTitle = 'Quà tặng đặc biệt từ FashionShop! 🎁';
     const promoMessage = `Nhập mã [${newCoupon.code}] để được giảm ngay ${discountText} cho đơn hàng từ ${newCoupon.minOrderValue.toLocaleString()}đ. Số lượng có hạn!`;
 
-    // Gửi thông báo cho từng User (Trong đồ án/shop nhỏ dùng Promise.all là ổn)
-    // Nếu shop lớn hàng triệu khách thì phải dùng Queue/Worker
+    // Gửi thông báo cho từng User 
     Promise.all(users.map(user => 
       createNotification(global.io, {
         userId: user._id,
         title: promoTitle,
         message: promoMessage,
         type: 'PROMOTION',
-        link: '/products', // Dẫn khách vào trang sản phẩm để tiêu tiền
+        link: '/products', 
         relatedId: newCoupon._id
       })
     ));
-
+    
     res.status(201).json({ success: true, message: 'Tạo mã và gửi thông báo thành công', data: newCoupon });
   } catch (error) {
     if (error.code === 11000) {
@@ -87,7 +85,7 @@ const getAvailableCoupons = async (req, res) => {
 
     const coupons = await Coupon.find({
       isActive: true,
-      startDate: { $lte: now },
+      startDate: { $lte: now }, 
       endDate: { $gte: now },
       // Chỉ lấy những mã mà User chưa từng sử dụng
       usedBy: { $ne: userId }
@@ -124,7 +122,7 @@ const applyCoupon = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Mã giảm giá đã hết lượt sử dụng!' });
     }
 
-    // 5. Check người dùng đã xài chưa (Chống bào)
+    // 5. Check người dùng đã xài chưa 
     if (coupon.usedBy.includes(userId)) {
       return res.status(400).json({ success: false, message: 'Bạn đã sử dụng mã này rồi!' });
     }

@@ -41,7 +41,7 @@ const register = async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(409).json({ success: false, message: 'Email này đã được đăng ký.' });
 
-    // Khởi tạo User mới (chưa lưu vội)
+    // Khởi tạo User mới 
     const newUser = new User({
       fullName: fullName.trim(),
       email: email.toLowerCase(),
@@ -50,18 +50,18 @@ const register = async (req, res) => {
       role: 'customer', 
     });
 
-    // 🚀 TẠO TOKEN XÁC THỰC EMAIL
+  
     // Dùng thư viện crypto có sẵn của Node.js
     const verificationToken = crypto.randomBytes(20).toString('hex');
     
-    // Mã hóa token trước khi lưu vào DB (bảo mật y chang luồng Quên mật khẩu)
+    // Mã hóa token trước khi lưu vào DB 
     newUser.emailVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
     newUser.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // Hạn 24 giờ
 
     // Lưu user vào DB (Lúc này isVerified trong Model vẫn đang là false)
     await newUser.save();
 
-    // 🚀 GỬI EMAIL XÁC THỰC
+
     // Link này trỏ về Frontend. FE bắt route này và gọi API xác thực
     const verifyUrl = `http://localhost:5173/verify-email/${verificationToken}`; 
     
@@ -179,7 +179,7 @@ const forgotPassword = async (req, res) => {
 };
 
 /**
- * 🔑 ĐẶT LẠI MẬT KHẨU (Kiểm tra token và lưu mật khẩu mới)
+ * ĐẶT LẠI MẬT KHẨU (Kiểm tra token và lưu mật khẩu mới)
  */
 const resetPassword = async (req, res) => {
   try {

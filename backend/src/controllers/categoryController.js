@@ -167,74 +167,74 @@ const createCategory = async (req, res) => {
  * @route PUT /api/categories/:id
  * @access Public
  */
-const updateCategory = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, description } = req.body;
+  const updateCategory = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description } = req.body;
 
-    // Tìm danh mục theo ID
-    const category = await Category.findById(id);
+      // Tìm danh mục theo ID
+      const category = await Category.findById(id);
 
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: 'Danh mục không tồn tại',
-        data: null,
-      });
-    }
-
-    // Cập nhật thông tin nếu được cung cấp
-    if (name && name.trim() !== '') {
-      // Kiểm tra xem name mới đã bị dùng bởi danh mục khác chưa
-      const existingCategory = await Category.findOne({
-        name: name.trim(),
-        _id: { $ne: id }, // Loại trừ danh mục hiện tại
-      });
-
-      if (existingCategory) {
-        return res.status(409).json({
+      if (!category) {
+        return res.status(404).json({
           success: false,
-          message: 'Danh mục với tên này đã tồn tại',
+          message: 'Danh mục không tồn tại',
           data: null,
         });
       }
 
-      category.name = name.trim();
-    }
+      // Cập nhật thông tin nếu được cung cấp
+      if (name && name.trim() !== '') {
+        // Kiểm tra xem name mới đã bị dùng bởi danh mục khác chưa
+        const existingCategory = await Category.findOne({
+          name: name.trim(),
+          _id: { $ne: id }, 
+        });
 
-    if (description !== undefined) {
-      category.description = description.trim();
-    }
+        if (existingCategory) {
+          return res.status(409).json({
+            success: false,
+            message: 'Danh mục với tên này đã tồn tại',
+            data: null,
+          });
+        }
+
+        category.name = name.trim();
+      }
+
+      if (description !== undefined) {
+        category.description = description.trim();
+      }
 
 
-    // Lưu các thay đổi - Middleware sẽ cập nhật slug nếu name được thay đổi
-    const updatedCategory = await category.save();
+      // Lưu các thay đổi - Middleware sẽ cập nhật slug nếu name được thay đổi
+      const updatedCategory = await category.save();
 
-    return res.status(200).json({
-      success: true,
-      message: 'Cập nhật danh mục thành công',
-      data: updatedCategory,
-    });
-  } catch (error) {
-    console.error('Lỗi khi cập nhật danh mục:', error);
+      return res.status(200).json({
+        success: true,
+        message: 'Cập nhật danh mục thành công',
+        data: updatedCategory,
+      });
+    } catch (error) {
+      console.error('Lỗi khi cập nhật danh mục:', error);
 
-    // Kiểm tra lỗi duplicate key
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      return res.status(409).json({
+      // Kiểm tra lỗi duplicate key
+      if (error.code === 11000) {
+        const field = Object.keys(error.keyValue)[0];
+        return res.status(409).json({
+          success: false,
+          message: `Danh mục với ${field} này đã tồn tại`,
+          data: null,
+        });
+      }
+
+      return res.status(500).json({
         success: false,
-        message: `Danh mục với ${field} này đã tồn tại`,
+        message: 'Lỗi máy chủ khi cập nhật danh mục',
         data: null,
       });
     }
-
-    return res.status(500).json({
-      success: false,
-      message: 'Lỗi máy chủ khi cập nhật danh mục',
-      data: null,
-    });
-  }
-};
+  };
 
 /**
  * Xóa danh mục
@@ -245,7 +245,6 @@ const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 🚀 CHỐT CHẶN: Kiểm tra xem có sản phẩm nào đang dùng danh mục này không
     const hasProducts = await Product.findOne({ category: id, isDeleted: false });
     if (hasProducts) {
       return res.status(400).json({

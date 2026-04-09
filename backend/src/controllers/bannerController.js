@@ -61,7 +61,7 @@ exports.updateBanner = async (req, res) => {
 
     // Nếu có upload ảnh mới
     if (req.file) {
-      // 1. Xóa ảnh cũ trên server (Nên làm để tránh rác host)
+      // 1. Xóa ảnh cũ trên server 
       const oldPath = path.join(__dirname, '../../', banner.imageUrl);
       if (fs.existsSync(oldPath)) {
         fs.unlinkSync(oldPath);
