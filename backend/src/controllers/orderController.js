@@ -8,10 +8,7 @@ const Coupon = require('../models/Coupon');
 const User = require('../models/User');
 const { createNotification } = require('../utils/notificationHelper');
 
-/**
- * Tạo đơn hàng từ giỏ hàng (ĐÃ ÁP DỤNG TRANSACTION)
- * POST /api/orders/create
- */
+
 /**
  * Tạo đơn hàng từ giỏ hàng (ĐÃ ÁP DỤNG TRANSACTION)
  * POST /api/orders/create
