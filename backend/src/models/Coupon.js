@@ -8,7 +8,7 @@ const couponSchema = new mongoose.Schema(
       required: [true, 'Vui lòng nhập mã giảm giá'],
       unique: true,
       trim: true,
-      uppercase: true, // Tự động viết hoa để khách nhập sao cũng ăn
+      uppercase: true, // Tự động viết hoa 
     },
     // Loại giảm giá: Theo phần trăm (%) hoặc trừ thẳng tiền mặt (VNĐ)
     discountType: {
@@ -56,7 +56,7 @@ const couponSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    // 🚀 CHỐNG BÀO: Danh sách những User đã sử dụng mã này
+      // Danh sách người dùng đã sử dụng mã này (Dùng để check xem 1 người đã xài chưa)
     usedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,

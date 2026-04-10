@@ -20,7 +20,7 @@ const getProductReviews = async (req, res) => {
   }
 };
 
-// 2. TẠO ĐÁNH GIÁ GỐC (A: "Áo đẹp vl")
+// 2. TẠO ĐÁNH GIÁ GỐC 
 const createReview = async (req, res) => {
   try {
     const { productId, rating, content } = req.body;
@@ -33,7 +33,7 @@ const createReview = async (req, res) => {
 
     const newReview = await Review.create({ product: productId, user: userId, rating, content });
     
-    // 🚀 THÔNG BÁO CHO ADMIN
+    // THÔNG BÁO CHO ADMIN
     const product = await Product.findById(productId);
     const admin = await User.findOne({ role: 'admin' });
     
@@ -76,7 +76,7 @@ const addReply = async (req, res) => {
       { new: true }
     ).populate('replies.user', 'fullName avatar role');
 
-    // 🚀 THÔNG BÁO CHO NGƯỜI VIẾT ĐÁNH GIÁ GỐC
+    // THÔNG BÁO CHO NGƯỜI VIẾT ĐÁNH GIÁ GỐC
     // Chỉ gửi nếu người trả lời KHÔNG PHẢI là chính chủ bài viết
     if (originalReview.user.toString() !== userId.toString()) {
       await createNotification(global.io, {

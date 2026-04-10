@@ -189,7 +189,7 @@ const getAllUsers = async (req, res) => {
       ];
     }
 
-    // 📂 2. Lọc theo vai trò
+    // 2. Lọc theo vai trò
     if (role && role !== 'All') {
       query.role = role;
     }

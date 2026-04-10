@@ -9,14 +9,13 @@ const {
   updateCoupon,
   deleteCoupon,
   applyCoupon,
-  getAvailableCoupons // 🚀 1. PHẢI IMPORT THÊM HÀM NÀY
+  getAvailableCoupons 
 } = require('../controllers/couponController');
 
 // ==========================================
 // ROUTES CHO KHÁCH HÀNG (Customer)
 // ==========================================
 
-// 🚀 2. THIẾU CÁI NÀY NÊN BỊ LỖI 404: Lấy danh sách mã hiển thị ở Checkout
 router.get('/available', protect, getAvailableCoupons);
 
 // Áp dụng mã giảm giá khi nhập code hoặc click chọn

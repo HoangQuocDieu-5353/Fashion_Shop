@@ -28,11 +28,10 @@ connectDB();
 
 const app = express();
 
-// ✅ TỰ ĐỘNG TẠO FOLDER UPLOADS
 const uploadsPath = path.resolve(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
-  console.log('📁 Đã tạo thư mục uploads');
+  console.log(' Đã tạo thư mục uploads');
 }
 
 // --- CORS ---
@@ -86,5 +85,5 @@ app.get('/', (req, res) => {
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server: http://localhost:${PORT}`);
+  console.log(` Server: http://localhost:${PORT}`);
 });

@@ -99,7 +99,6 @@ const admin = (req, res, next) => {
   }
 };
 
-// Xuất các middleware
 module.exports = {
   protect,
   admin,

@@ -6,7 +6,7 @@ const wishlistSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true, // 🚀 Mongoose đã tự tạo Index ở đây rồi
+      unique: true, 
     },
     products: [
       {

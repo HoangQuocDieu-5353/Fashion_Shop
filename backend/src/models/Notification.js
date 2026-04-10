@@ -9,7 +9,7 @@ const notificationSchema = new mongoose.Schema({
     enum: ['ORDER', 'PROMOTION', 'SYSTEM'], 
     default: 'ORDER' 
   },
-  link: { type: String }, // Đường dẫn để khách bấm vào là bay tới trang đó (vd: /orders/123)
+  link: { type: String }, // Đường dẫn điều hướng khi bấm vào thông báo
   isRead: { type: Boolean, default: false },
   relatedId: { type: mongoose.Schema.Types.ObjectId } // ID của đơn hàng hoặc sản phẩm liên quan
 }, { timestamps: true });

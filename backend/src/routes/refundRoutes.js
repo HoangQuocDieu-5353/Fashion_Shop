@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer'); // 🚀 Thêm cái này
-const path = require('path');   // 🚀 Thêm cái này
+const multer = require('multer'); 
+const path = require('path');   
 
 // Import các hàm xử lý từ Controller
 const { 
@@ -14,7 +14,7 @@ const {
 
 const { protect, admin } = require('../middlewares/authMiddleware');
 
-// ===== 🚀 CẤU HÌNH MULTER (Copy từ productRoutes) =====
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../../uploads'));
@@ -41,7 +41,7 @@ const upload = multer({
 });
 
 // ==========================================
-// 🚀 ROUTES DÀNH CHO USER (KHÁCH HÀNG)
+//  ROUTES DÀNH CHO USER (KHÁCH HÀNG)
 // ==========================================
 
 router.get('/my-refunds', protect, getMyRefunds);
@@ -50,7 +50,7 @@ router.get('/my-refunds', protect, getMyRefunds);
 router.post('/request', protect, upload.array('images', 5), createRefundRequest);
 
 // ==========================================
-// 🚀 ROUTES DÀNH CHO ADMIN (QUẢN TRỊ VIÊN)
+//  ROUTES DÀNH CHO ADMIN (QUẢN TRỊ VIÊN)
 // ==========================================
 
 router.get('/admin/all', protect, admin, getAllRefunds);

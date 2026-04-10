@@ -13,7 +13,6 @@ const categorySchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // Đảm bảo KHÔNG để required: true ở đây vì mình tự tạo slug
     slug: {
       type: String,
       unique: true,
@@ -26,13 +25,10 @@ const categorySchema = new mongoose.Schema(
   }
 );
 
-/**
- * SỬA LỖI TẠI ĐÂY: Dùng 'validate' thay vì 'save'
- * Mongoose sẽ chạy hàm này TRƯỚC KHI kiểm tra các ràng buộc dữ liệu
- */
+
 // backend/src/models/Category.js
 
-// 🚀 Chuyển sang async function và xóa tham số next
+// Chuyển sang async function và xóa tham số next
 categorySchema.pre('validate', async function () { 
   if (this.name && (this.isModified('name') || !this.slug)) {
     try {
@@ -47,7 +43,7 @@ categorySchema.pre('validate', async function () {
       throw new Error('Lỗi khi tạo slug cho danh mục');
     }
   }
-  // 🚀 Tuyệt đối không gọi next() ở đây nữa
+
 });
 
 module.exports = mongoose.model('Category', categorySchema);

@@ -55,7 +55,6 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
-    // 🚀 PHẦN THÊM MỚI: QUẢN LÝ QUÊN MẬT KHẨU
     resetPasswordToken: {
       type: String,
       default: null,

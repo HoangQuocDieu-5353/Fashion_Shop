@@ -43,7 +43,7 @@ const processImages = (files, bodyImages) => {
 };
 
 /**
- * 🚀 TẠO SẢN PHẨM MỚI (ĐẠI TÚ KIẾN TRÚC 3 BẢNG)
+ * TẠO SẢN PHẨM MỚI 
  */
 
 const createProduct = async (req, res) => {
@@ -68,7 +68,6 @@ const createProduct = async (req, res) => {
       const baseSlug = generateSlug(name);
       const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-5)}`;
 
-      // LƯU Ý: Cú pháp .create khi dùng session phải là mảng: [data], { session }
       const [newProduct] = await Product.create([{
         name,
         slug: uniqueSlug,
@@ -133,7 +132,7 @@ const createProduct = async (req, res) => {
 };
 
 /**
- * 🚀 LẤY DANH SÁCH SẢN PHẨM (DÀNH CHO TRANG CHỦ / TÌM KIẾM)
+ *  LẤY DANH SÁCH SẢN PHẨM (DÀNH CHO TRANG CHỦ / TÌM KIẾM)
  */
 const getProducts = async (req, res) => {
   try {
@@ -226,7 +225,7 @@ const getProducts = async (req, res) => {
 };
 
 /**
- * 🚀 LẤY CHI TIẾT SẢN PHẨM (KÈM TOÀN BỘ BIẾN THỂ VÀ TỒN KHO)
+ * LẤY CHI TIẾT SẢN PHẨM (KÈM TOÀN BỘ BIẾN THỂ VÀ TỒN KHO)
  */
 const getProductDetail = async (req, res) => {
   try {
@@ -267,8 +266,8 @@ const getProductDetail = async (req, res) => {
 };
 
 /**
- * 🚀 CẬP NHẬT SẢN PHẨM CƠ BẢN
- * (Lưu ý: Chỉ cập nhật Vỏ Product. Việc quản lý thêm/xóa Variant nên làm ở API riêng)
+ * CẬP NHẬT SẢN PHẨM 
+ * 
  */
 const updateProduct = async (req, res) => {
   const session = await mongoose.startSession();
@@ -278,7 +277,7 @@ const updateProduct = async (req, res) => {
       const { id } = req.params;
       const { name, price, description, category, images: bodyImages, variants: bodyVariants } = req.body;
 
-      // 1. TÌM SẢN PHẨM GỐC (Sử dụng .session)
+      // 1. TÌM SẢN PHẨM GỐC
       const product = await Product.findOne({ _id: id, isDeleted: false }).session(session);
       if (!product) throw new Error('Sản phẩm không tồn tại hoặc đã bị xóa');
 
@@ -330,7 +329,7 @@ const updateProduct = async (req, res) => {
           const sku = generateSlug(`${product.name}-${item.color}-${item.size}`).toUpperCase();
 
           if (item._id) {
-            // --- TRƯỜNG HỢP: CẬP NHẬT BIẾN THỂ CŨ ---
+            
             await ProductVariant.findByIdAndUpdate(
               item._id,
               {
@@ -351,7 +350,7 @@ const updateProduct = async (req, res) => {
             }
           } else {
             // --- TRƯỜNG HỢP: THÊM BIẾN THỂ MỚI HOÀN TOÀN ---
-            // Lưu ý: create trả về mảng khi dùng session
+        
             const [newVariant] = await ProductVariant.create([{
               product: id,
               sku,
@@ -385,7 +384,7 @@ const updateProduct = async (req, res) => {
 };
 
 /**
- * 🚀 XÓA MỀM SẢN PHẨM
+ * XÓA MỀM SẢN PHẨM
  */
 const softDeleteProduct = async (req, res) => {
   try {

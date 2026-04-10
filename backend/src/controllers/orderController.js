@@ -10,7 +10,7 @@ const { createNotification } = require('../utils/notificationHelper');
 
 
 /**
- * Tạo đơn hàng từ giỏ hàng (ĐÃ ÁP DỤNG TRANSACTION)
+ * Tạo đơn hàng từ giỏ hàng 
  * POST /api/orders/create
  */
 const createOrder = async (req, res) => {
@@ -25,7 +25,7 @@ const createOrder = async (req, res) => {
       throw new Error('MISSING_SHIPPING_INFO');
     }
 
-    // 1. LẤY GIỎ HÀNG: Chỉ populate product, KHÔNG populate variant vì Cart ko lưu variant._id
+    // 1. LẤY GIỎ HÀNG
     const cart = await Cart.findOne({ user: userId })
       .session(session)
       .populate('items.product');
@@ -43,7 +43,7 @@ const createOrder = async (req, res) => {
         throw new Error('PRODUCT_NOT_FOUND');
       }
 
-      // 🚀 BƯỚC QUAN TRỌNG: Tìm ProductVariant dựa trên product, size, color từ Giỏ hàng
+      //Tìm ProductVariant dựa trên product, size, color từ Giỏ hàng
       const variant = await ProductVariant.findOne({
         product: item.product._id,
         size: item.size,
@@ -65,10 +65,10 @@ const createOrder = async (req, res) => {
       const itemPrice = variant.price || item.product.price;
       subTotal += itemPrice * item.quantity;
 
-      // Đưa vào mảng OrderItem (Lưu luôn cả variant._id cho chuẩn Order Schema)
+      // Đưa vào mảng OrderItem 
       orderItems.push({
         product: item.product._id,
-        variant: variant._id, // 🚀 Đã có ID variant chuẩn
+        variant: variant._id, 
         quantity: item.quantity,
         size: item.size,
         color: item.color,
@@ -93,7 +93,7 @@ const createOrder = async (req, res) => {
       if (coupon.discountType === 'fixed') {
         discountAmount = coupon.discountValue;
       } else {
-        discountAmount = (subTotal * coupon.discountValue) / 100;
+        discountAmount = (subTotal * coupon.discountValue) / 100; 
         if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
           discountAmount = coupon.maxDiscount;
         }
@@ -131,7 +131,7 @@ const createOrder = async (req, res) => {
     // 6. TRỪ KHO INVENTORY
     const inventoryOps = orderItems.map((item) => ({
       updateOne: {
-        filter: { variant: item.variant }, // Dùng chuẩn variant._id
+        filter: { variant: item.variant }, 
         update: { 
           $inc: { 
             stock: -item.quantity,
@@ -146,15 +146,10 @@ const createOrder = async (req, res) => {
     cart.items = [];
     await cart.save({ session });
 
-    // ============================================================
-    // CHỐT GIAO DỊCH (COMMIT)
-    // ============================================================
+  
     await session.commitTransaction();
     session.endSession();
 
-    // ============================================================
-    // THÔNG BÁO VÀ KẾT THÚC
-    // ============================================================
     setImmediate(async () => {
       for (const item of orderItems) {
         const currentInv = await Inventory.findOne({ variant: item.variant });
@@ -281,7 +276,7 @@ const getOrderById = async (req, res) => {
 };
 
 /**
- * Hủy đơn hàng (Hoàn kho Inventory + Bắn thông báo)
+ * Hủy đơn hàng 
  */
 const cancelOrder = async (req, res) => {
   try {

@@ -13,7 +13,7 @@ const {
   toggleUserStatus,
 } = require('../controllers/userController');
 
-// 🛠️ 1. Cấu hình Multer lưu ảnh vào máy local
+//  1. Cấu hình Multer lưu ảnh vào máy local
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'uploads/avatars';
@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
   }
 });
 
-// 🛠️ 2. Bộ lọc chỉ nhận file ảnh
+//  2. Bộ lọc chỉ nhận file ảnh
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);

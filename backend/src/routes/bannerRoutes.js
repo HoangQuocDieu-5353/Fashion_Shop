@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bannerController = require('../controllers/bannerController');
 
-// 1. Ở đây ông giáo đã lấy ra 'admin' rồi nè
+
 const { protect, admin } = require('../middlewares/authMiddleware'); 
 
 const multer = require('multer');
@@ -17,9 +17,6 @@ router.get('/', bannerController.getActiveBanners);
 
 router.use(protect); 
 
-// 🚀 SỬA DÒNG NÀY: 
-// Vì dòng 4 ông giáo import 'admin' nên ở đây chỉ cần truyền 'admin' vào.
-// Không dùng 'authorize' vì ông giáo đâu có import nó đâu!
 router.use(admin); 
 
 router.get('/admin', bannerController.getAllBannersAdmin);
