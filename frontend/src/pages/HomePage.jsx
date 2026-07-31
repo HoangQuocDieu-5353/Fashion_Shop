@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../api/axiosInstance';
-import { ShoppingBag, ArrowRight, ChevronLeft, ChevronRight, Zap, Star, Truck, ShieldCheck, Headphones } from 'lucide-react';
+import { ShoppingBag, Truck, ShieldCheck, Headphones } from 'lucide-react';
 
 export const HomePage = () => {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ export const HomePage = () => {
   
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [banners, setBanners] = useState([]); // 🚀 STATE MỚI CHO BANNER
+  const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [activeNewCat, setActiveNewCat] = useState('all');
@@ -19,12 +19,23 @@ export const HomePage = () => {
 
   const BASE_URL = "http://localhost:5000";
 
-  // 🚀 HELPER XỬ LÝ ẢNH CHUẨN
+  // HELPER XỬ LÝ ẢNH CHUẨN
   const getImgUrl = (imageSource) => {
-    if (!imageSource) return 'https://placehold.co/1200x600?text=No+Image';
+    if (!imageSource) return 'https://placehold.co/800x800?text=No+Image';
     const path = typeof imageSource === 'string' ? imageSource : (imageSource.imageUrl || imageSource.images?.[0]);
     if (path?.startsWith('http')) return path;
     return `${BASE_URL}${path?.startsWith('/') ? '' : '/'}${path}`;
+  };
+
+  // 🚀 FIX LỖI GIÁ 0 Đ: Ép kiểu dữ liệu về Number an toàn
+  const getMinPrice = (product) => {
+    let basePrice = Number(product?.price) || 0; // Ép kiểu nếu DB lưu là String
+    
+    if (product?.variants?.length > 0) {
+      const prices = product.variants.map(v => Number(v.price)).filter(p => !isNaN(p) && p > 0);
+      if (prices.length > 0) return Math.min(...prices);
+    }
+    return basePrice;
   };
 
   useEffect(() => {
@@ -34,9 +45,8 @@ export const HomePage = () => {
     fetchInitialData();
   }, [isAuthenticated, user, authLoading, navigate]);
 
-  // Tự động chuyển slide
   useEffect(() => {
-    if (banners.length > 0) {
+    if (banners.length > 1) {
       const slideInterval = setInterval(() => {
         setCurrentSlide((prev) => (prev === banners.length - 1 ? 0 : prev + 1));
       }, 5000);
@@ -50,11 +60,11 @@ export const HomePage = () => {
       const [prodRes, catRes, banRes] = await Promise.all([
         axiosInstance.get('/products'),
         axiosInstance.get('/categories'),
-        axiosInstance.get('/banners') // 🚀 GỌI API BANNER MODEL 13
+        axiosInstance.get('/banners').catch(() => ({ data: { data: [] } })) // Tránh crash nếu chưa có API banner
       ]);
-      if (prodRes.data.success) setProducts(prodRes.data.data);
-      if (catRes.data.success) setCategories(catRes.data.data);
-      if (banRes.data.success) setBanners(banRes.data.data);
+      if (prodRes.data?.success) setProducts(prodRes.data.data);
+      if (catRes.data?.success) setCategories(catRes.data.data);
+      if (banRes?.data?.success) setBanners(banRes.data.data);
     } catch (error) {
       console.error("Lỗi lấy dữ liệu:", error);
     } finally {
@@ -62,119 +72,192 @@ export const HomePage = () => {
     }
   };
 
+  // 🚀 FIX LỖI HIỂN THỊ SẢN PHẨM: Tăng limit lên 8 hoặc 12 sản phẩm thay vì 4
   const filterProducts = (catId, type) => {
     let filtered = products.filter(p => {
       if (catId === 'all') return true;
       return (p.category?._id || p.category) === catId;
     });
-    return type === 'new' ? filtered.slice(0, 4) : filtered.slice(4, 8);
+    
+    // Trả về tối đa 8 sản phẩm cho 1 section (2 hàng)
+    if (type === 'new') return filtered.slice(0, 8);
+    // Best seller lấy 8 sản phẩm tiếp theo, nếu ít quá thì lấy lại từ đầu
+    return filtered.length > 8 ? filtered.slice(8, 16) : filtered.slice(0, 8); 
   };
 
   const ProductCard = ({ product }) => {
-    const minPrice = product.variants?.length > 0 
-      ? Math.min(...product.variants.map(v => v.price)) 
-      : product.price;
+    const minPrice = getMinPrice(product);
 
     return (
-      <div className="group space-y-4">
-        <div className="relative aspect-[3/4] overflow-hidden bg-zinc-50 border border-zinc-100 rounded-2xl">
-          <Link to={`/products/${product._id}`}>
+      <div className="group flex flex-col space-y-4">
+        {/* 🚀 FIX UI ẢNH: Chuyển từ aspect-[3/4] sang aspect-square, thêm p-4, đổi object-contain */}
+        <div className="relative aspect-square overflow-hidden bg-white border border-zinc-100 rounded-2xl p-4 flex items-center justify-center">
+          <Link to={`/products/${product._id}`} className="w-full h-full flex items-center justify-center">
             <img 
               src={getImgUrl(product)} 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-110"
               alt={product.name}
             />
           </Link>
-          <button className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hover:bg-black hover:text-white">
+          <button 
+            className="absolute bottom-4 right-4 bg-black text-white p-3.5 rounded-full shadow-lg translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hover:bg-zinc-800"
+            title="Thêm vào giỏ"
+          >
              <ShoppingBag size={18} />
           </button>
         </div>
-        <div className="space-y-1 px-1">
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{product.category?.name}</p>
+        <div className="space-y-1.5 px-1 text-center md:text-left">
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest truncate">
+            {product.category?.name || 'Linh kiện'}
+          </p>
           <Link to={`/products/${product._id}`}>
-            <h3 className="text-sm font-bold text-black uppercase tracking-tight truncate hover:underline">{product.name}</h3>
+            <h3 className="text-sm font-semibold text-black uppercase tracking-tight truncate hover:text-blue-600 transition-colors">
+              {product.name}
+            </h3>
           </Link>
-          <p className="text-sm font-black">{minPrice.toLocaleString('vi-VN')} đ</p>
+          {/* Đổi màu giá tiền cho nổi bật hơn (Đỏ/Đen tùy form đồ công nghệ) */}
+          <p className="text-sm font-black text-red-600">
+            {minPrice.toLocaleString('vi-VN')} đ
+          </p>
         </div>
       </div>
     );
   };
 
   const CategoryTab = ({ active, onChange }) => (
-    <div className="flex justify-center gap-8 mb-12">
-      <button onClick={() => onChange('all')} className={`text-[10px] font-black uppercase tracking-widest pb-2 border-b-2 transition-all ${active === 'all' ? 'border-black text-black' : 'border-transparent text-zinc-300'}`}>Tất cả</button>
+    <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-12">
+      <button 
+        onClick={() => onChange('all')} 
+        className={`text-[11px] font-black uppercase tracking-widest pb-2 border-b-2 transition-all duration-300 ${active === 'all' ? 'border-black text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
+      >
+        TẤT CẢ
+      </button>
       {categories.map(cat => (
-        <button key={cat._id} onClick={() => onChange(cat._id)} className={`text-[10px] font-black uppercase tracking-widest pb-2 border-b-2 transition-all ${active === cat._id ? 'border-black text-black' : 'border-transparent text-zinc-300'}`}>{cat.name}</button>
+        <button 
+          key={cat._id} 
+          onClick={() => onChange(cat._id)} 
+          className={`text-[11px] font-black uppercase tracking-widest pb-2 border-b-2 transition-all duration-300 ${active === cat._id ? 'border-black text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
+        >
+          {cat.name}
+        </button>
       ))}
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-10 h-10 border-4 border-zinc-200 border-t-black rounded-full animate-spin"></div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white">
+    <div className="bg-white min-h-screen pb-20">
       
-      {/* 1. HERO SLIDER (DÙNG DỮ LIỆU TỪ DATABASE) */}
-      <section className="relative h-[85vh] w-full overflow-hidden">
-        {banners.length > 0 ? banners.map((b, index) => (
-          <div key={b._id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
-            <img src={getImgUrl(b.imageUrl)} className="w-full h-full object-cover" alt={b.title} />
-            <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center text-center px-6">
-              <h2 className="text-6xl md:text-8xl font-black text-white uppercase tracking-tighter mb-8 drop-shadow-lg">{b.title}</h2>
-              <Link to={b.linkUrl} className="bg-white text-black px-12 py-4 text-[11px] font-black uppercase tracking-[3px] hover:bg-black hover:text-white transition-all shadow-xl">
-                Khám phá ngay
-              </Link>
-            </div>
+      {/* 1. HERO SLIDER */}
+      <section className="relative h-[60vh] md:h-[80vh] w-full overflow-hidden bg-zinc-900">
+        {banners.length > 0 ? (
+          <>
+            {banners.map((b, index) => (
+              <div 
+                key={b._id} 
+                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+              >
+                <img src={getImgUrl(b.imageUrl)} className="w-full h-full object-cover opacity-70" alt={b.title} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+                  <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-white uppercase tracking-tighter mb-6 drop-shadow-2xl">
+                    {b.title}
+                  </h2>
+                  <Link to={b.linkUrl || '/products'} className="bg-blue-600 text-white px-10 py-4 text-[11px] font-black uppercase tracking-[3px] hover:bg-blue-700 transition-colors duration-300 shadow-xl rounded-sm">
+                    Khám phá ngay
+                  </Link>
+                </div>
+              </div>
+            ))}
+            
+            {banners.length > 1 && (
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+                {banners.map((_, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`h-1.5 transition-all duration-300 rounded-full ${idx === currentSlide ? 'w-8 bg-blue-500' : 'w-2 bg-white/50 hover:bg-white/80'}`}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="h-full w-full flex items-center justify-center bg-zinc-800 text-zinc-400 font-bold uppercase tracking-[5px]">
+            VST COMPUTER BANNER
           </div>
-        )) : (
-            <div className="h-full w-full bg-zinc-100 animate-pulse flex items-center justify-center text-zinc-300 font-bold uppercase tracking-[5px]">Fashion Shop</div>
         )}
       </section>
 
-      {/* 2. NEW ARRIVALS (Tối giản hoàn toàn) */}
-      <section className="max-w-7xl mx-auto py-24 px-6">
-        <div className="flex flex-col items-center text-center mb-16">
-          <span className="text-zinc-300 font-black text-[50px] uppercase opacity-20 mb-[-35px]">Modern</span>
-          <h2 className="text-2xl font-black uppercase tracking-[5px] text-black relative z-10">New Arrivals</h2>
+      {/* 2. NEW ARRIVALS */}
+      <section className="max-w-7xl mx-auto pt-24 px-4 sm:px-6">
+        <div className="flex flex-col items-center text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-black uppercase tracking-[2px] text-black border-b-4 border-blue-600 pb-2">
+            Sản phẩm mới
+          </h2>
         </div>
+        
         <CategoryTab active={activeNewCat} onChange={setActiveNewCat} />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
           {filterProducts(activeNewCat, 'new').map(p => <ProductCard key={p._id} product={p} />)}
         </div>
+        {filterProducts(activeNewCat, 'new').length === 0 && (
+           <p className="text-center text-zinc-400 text-sm py-10">Chưa có sản phẩm nào trong danh mục này.</p>
+        )}
       </section>
 
-      {/* 3. BEST SELLERS (Bỏ nền đen, dùng viền mảnh sang trọng) */}
-      <section className="border-t border-b border-zinc-100 py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex justify-between items-end mb-16 border-l-4 border-black pl-6">
-            <div>
-              <h2 className="text-2xl font-black uppercase tracking-[5px]">Best Sellers</h2>
-              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-2">Những món đồ được yêu thích nhất mùa này</p>
-            </div>
-            <Link to="/products" className="text-[10px] font-black uppercase tracking-widest border-b border-black pb-1 hover:text-zinc-400 hover:border-zinc-400 transition-all">Xem tất cả</Link>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {filterProducts(activeBestCat, 'best').map(p => <ProductCard key={p._id} product={p} />)}
-          </div>
+      {/* 3. BEST SELLERS */}
+      <section className="max-w-7xl mx-auto pt-24 px-4 sm:px-6">
+        <div className="flex flex-col items-center text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-black uppercase tracking-[2px] text-black border-b-4 border-blue-600 pb-2">
+            Bán chạy nhất
+          </h2>
         </div>
+
+        <CategoryTab active={activeBestCat} onChange={setActiveBestCat} />
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+          {filterProducts(activeBestCat, 'best').map(p => <ProductCard key={p._id} product={p} />)}
+        </div>
+        {filterProducts(activeBestCat, 'best').length === 0 && (
+           <p className="text-center text-zinc-400 text-sm py-10">Chưa có sản phẩm nào trong danh mục này.</p>
+        )}
       </section>
 
-      {/* 4. SERVICES (Minimalist Icons) */}
-      <section className="py-24">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-16">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <Truck size={32} strokeWidth={1} />
-            <h3 className="text-[11px] font-black uppercase tracking-[3px]">Giao hàng hỏa tốc</h3>
-            <p className="text-[10px] text-zinc-400 uppercase leading-loose">Miễn phí cho đơn từ 1.000.000đ</p>
+      {/* 4. SERVICES */}
+      <section className="max-w-6xl mx-auto mt-24 pt-12 border-t border-zinc-100 px-6 grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="flex flex-col items-center text-center space-y-4 group">
+          <div className="p-4 bg-blue-50 text-blue-600 rounded-full group-hover:-translate-y-2 transition-transform duration-300">
+            <Truck size={28} strokeWidth={1.5} />
           </div>
-          <div className="flex flex-col items-center text-center space-y-4 border-x border-zinc-100">
-            <ShieldCheck size={32} strokeWidth={1} />
-            <h3 className="text-[11px] font-black uppercase tracking-[3px]">Bảo hành 12 tháng</h3>
-            <p className="text-[10px] text-zinc-400 uppercase leading-loose">Cam kết chất lượng vải cao cấp</p>
+          <h3 className="text-[12px] font-black uppercase tracking-[1px]">Giao hàng hỏa tốc</h3>
+          <p className="text-[11px] text-zinc-500">Miễn phí cho đơn từ 1.000.000đ</p>
+        </div>
+        
+        <div className="flex flex-col items-center text-center space-y-4 group">
+          <div className="p-4 bg-blue-50 text-blue-600 rounded-full group-hover:-translate-y-2 transition-transform duration-300">
+            <ShieldCheck size={28} strokeWidth={1.5} />
           </div>
-          <div className="flex flex-col items-center text-center space-y-4">
-            <Headphones size={32} strokeWidth={1} />
-            <h3 className="text-[11px] font-black uppercase tracking-[3px]">Hỗ trợ tận tâm</h3>
-            <p className="text-[10px] text-zinc-400 uppercase leading-loose">Phục vụ 24/7 qua Hotline/Zalo</p>
+          <h3 className="text-[12px] font-black uppercase tracking-[1px]">Bảo hành chính hãng</h3>
+          <p className="text-[11px] text-zinc-500">Cam kết 100% chất lượng từ VST</p>
+        </div>
+        
+        <div className="flex flex-col items-center text-center space-y-4 group">
+          <div className="p-4 bg-blue-50 text-blue-600 rounded-full group-hover:-translate-y-2 transition-transform duration-300">
+            <Headphones size={28} strokeWidth={1.5} />
           </div>
+          <h3 className="text-[12px] font-black uppercase tracking-[1px]">Hỗ trợ kỹ thuật</h3>
+          <p className="text-[11px] text-zinc-500">Phục vụ 24/7 qua Hotline/Zalo</p>
         </div>
       </section>
 

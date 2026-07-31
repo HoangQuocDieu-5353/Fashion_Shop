@@ -78,7 +78,7 @@ export const Header = () => {
         {/* 1. LOGO */}
         <Link to="/" className="relative z-[110]">
           <h1 style={{ fontFamily: "'Montserrat', sans-serif" }} className="text-[18px] font-black tracking-[6px] text-black uppercase">
-            FASHION<span className="font-light text-zinc-300">.</span>
+            VST COMPUTER<span className="font-light text-zinc-300">.</span>
           </h1>
         </Link>
 
