@@ -4,7 +4,7 @@ import axiosInstance from '../api/axiosInstance';
 import toast from 'react-hot-toast';
 import { Plus, Upload, ArrowLeft, Trash2 } from 'lucide-react';
 
-const AVAILABLE_SIZES = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
+const AVAILABLE_SIZES = ['8GB', '16GB', '32GB'];
 const AVAILABLE_COLORS = ['Đen', 'Trắng', 'Xám', 'Xanh Navy', 'Đỏ', 'Be', 'Vàng', 'Hồng', 'Xanh Lá'];
 
 export const AdminProductAdd = () => {

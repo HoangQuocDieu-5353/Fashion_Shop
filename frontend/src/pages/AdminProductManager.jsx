@@ -12,19 +12,24 @@ export const AdminProductManager = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 🚀 HELPER XỬ LÝ ẢNH (Đồng bộ với trang User Detail)
+  // 🚀 HELPER XỬ LÝ ẢNH (Đã được tự động bù thư mục uploads)
   const getImgUrl = (product) => {
     const path = product?.images?.[0];
     if (!path) return 'https://placehold.co/100x130?text=No+Image';
     
-    // Nếu là ảnh preview (blob/base64)
     if (path.startsWith('data:') || path.startsWith('blob:')) return path;
+    if (path.startsWith('http')) return path; 
 
-    // Fix dấu xuyệt ngược Windows và xóa dấu / ở đầu (giống trang Detail)
-    const cleanPath = path.replace(/\\/g, '/');
-    const finalPath = cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath;
+    // Fix dấu xuyệt ngược Windows và xóa dấu / ở đầu
+    let cleanPath = path.replace(/\\/g, '/');
+    cleanPath = cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath;
     
-    return `${BASE_URL}/${finalPath}`;
+    // Tự động kiểm tra và thêm 'uploads/' nếu DB chưa có
+    if (!cleanPath.startsWith('uploads/')) {
+      cleanPath = `uploads/${cleanPath}`;
+    }
+    
+    return `${BASE_URL}/${cleanPath}`;
   };
 
   useEffect(() => {

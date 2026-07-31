@@ -5,22 +5,22 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs'); 
 const socketIo = require('socket.io');
-const connectDB = require('./configs/db');
+const connectDB = require('../configs/db');
 
 // --- IMPORT ROUTES ---
-const productRoutes = require('./routes/productRoutes');
-const categoryRoutes = require('./routes/categoryRoutes');
-const authRoutes = require('./routes/authRoutes');
-const cartRoutes = require('./routes/cartRoutes');
-const orderRoutes = require('./routes/orderRoutes');
-const userRoutes = require('./routes/userRoutes');
-const reviewRoutes = require('./routes/reviewRoutes');
-const couponRoutes = require('./routes/couponRoutes');
-const wishlistRoutes = require('./routes/wishlistRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const refundRoutes = require('./routes/refundRoutes'); 
-const bannerRoutes = require('./routes/bannerRoutes');
-const { initializeSocket } = require('./utils/socketHandler');
+const productRoutes = require('../routes/productRoutes');
+const categoryRoutes = require('../routes/categoryRoutes');
+const authRoutes = require('../routes/authRoutes');
+const cartRoutes = require('../routes/cartRoutes');
+const orderRoutes = require('../routes/orderRoutes');
+const userRoutes = require('../routes/userRoutes');
+const reviewRoutes = require('../routes/reviewRoutes');
+const couponRoutes = require('../routes/couponRoutes');
+const wishlistRoutes = require('../routes/wishlistRoutes');
+const notificationRoutes = require('../routes/notificationRoutes');
+const refundRoutes = require('../routes/refundRoutes'); 
+const bannerRoutes = require('../routes/bannerRoutes');
+const { initializeSocket } = require('../utils/socketHandler');
 
 // --- CONFIG ---
 dotenv.config();
@@ -28,7 +28,7 @@ connectDB();
 
 const app = express();
 
-const uploadsPath = path.resolve(__dirname, '..', 'uploads');
+const uploadsPath = path.resolve(__dirname, '../../uploads');
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
   console.log(' Đã tạo thư mục uploads');
